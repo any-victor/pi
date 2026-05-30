@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
-import { KeybindingsManager, TUI_KEYBINDINGS } from "../src/keybindings.ts";
+import { getKeybindings, KeybindingsManager, setKeybindings, TUI_KEYBINDINGS } from "../src/keybindings.ts";
 
 describe("KeybindingsManager", () => {
 	it("does not evict selector confirm when input submit is rebound", () => {
@@ -34,5 +34,27 @@ describe("KeybindingsManager", () => {
 			},
 		]);
 		assert.deepStrictEqual(keybindings.getKeys("tui.editor.cursorLeft"), ["left", "ctrl+b"]);
+	});
+});
+
+describe("global keybindings slot", () => {
+	it("shares the manager across module copies via a globalThis Symbol.for() slot", () => {
+		// Extensions resolve their own on-disk copy of this module, so the
+		// singleton must live on globalThis under a process-wide Symbol.for()
+		// key. Reading the slot directly stands in for a separate module copy
+		// that only sees globalThis, not this module's lexical scope.
+		const merged = new KeybindingsManager({
+			...TUI_KEYBINDINGS,
+			"app.tools.expand": { defaultKeys: "ctrl+o", description: "Expand" },
+		});
+		setKeybindings(merged);
+
+		assert.strictEqual(getKeybindings(), merged);
+
+		const slot = (
+			globalThis as unknown as Record<symbol, { manager: KeybindingsManager | null }>
+		)[Symbol.for("@earendil-works/pi-tui.keybindings.v1")];
+		assert.strictEqual(slot?.manager, merged);
+		assert.deepStrictEqual(slot?.manager?.getKeys("app.tools.expand" as never), ["ctrl+o"]);
 	});
 });

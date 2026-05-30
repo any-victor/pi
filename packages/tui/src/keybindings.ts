@@ -230,15 +230,37 @@ export class KeybindingsManager {
 	}
 }
 
-let globalKeybindings: KeybindingsManager | null = null;
+/**
+ * The global keybindings instance is anchored on `globalThis` via a
+ * `Symbol.for()` slot so every copy of this module in the process shares one
+ * instance. Extensions loaded by pi-coding-agent resolve their own on-disk copy
+ * of `@earendil-works/pi-tui`, which would otherwise get a distinct module-scope
+ * singleton: Pi's `setKeybindings(merged)` would only touch its own slot,
+ * leaving the extension's slot null and falling back to TUI-only defaults, so
+ * `app.*` lookups in extensions resolved to empty key lists.
+ */
+const KEYBINDINGS_REALM_KEY = Symbol.for("@earendil-works/pi-tui.keybindings.v1");
+
+interface KeybindingsRealm {
+	manager: KeybindingsManager | null;
+}
+
+function keybindingsRealm(): KeybindingsRealm {
+	const g = globalThis as unknown as Record<symbol, KeybindingsRealm>;
+	if (!g[KEYBINDINGS_REALM_KEY]) {
+		g[KEYBINDINGS_REALM_KEY] = { manager: null };
+	}
+	return g[KEYBINDINGS_REALM_KEY];
+}
 
 export function setKeybindings(keybindings: KeybindingsManager): void {
-	globalKeybindings = keybindings;
+	keybindingsRealm().manager = keybindings;
 }
 
 export function getKeybindings(): KeybindingsManager {
-	if (!globalKeybindings) {
-		globalKeybindings = new KeybindingsManager(TUI_KEYBINDINGS);
+	const realm = keybindingsRealm();
+	if (!realm.manager) {
+		realm.manager = new KeybindingsManager(TUI_KEYBINDINGS);
 	}
-	return globalKeybindings;
+	return realm.manager;
 }
