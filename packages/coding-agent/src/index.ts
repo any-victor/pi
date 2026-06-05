@@ -283,8 +283,24 @@ export {
 	withFileMutationQueue,
 } from "./core/tools/index.ts";
 export { hasProjectTrustInputs, type ProjectTrustDecision, ProjectTrustStore } from "./core/trust-manager.ts";
-// Main entry point
-export { type MainOptions, main } from "./main.ts";
+// Main entry point and composable CLI runtime helpers
+export {
+	type AppMode,
+	buildSessionOptions,
+	type CliRuntime,
+	type CliServiceProvider,
+	createCliRuntime,
+	DefaultCliServiceProvider,
+	type InteractiveModeHost,
+	type MainOptions,
+	main,
+	prepareInitialMessage,
+	resolveAppMode,
+	resolveCliPaths,
+	runCli,
+	runCliMode,
+	toPrintOutputMode,
+} from "./main.ts";
 // Run modes for programmatic SDK usage
 export {
 	InteractiveMode,
